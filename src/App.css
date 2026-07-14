@@ -7,6 +7,12 @@
   padding: 16px;
 }
 
+.highlight-link {
+  border: 2px solid red;
+  border-radius: 4px;
+  padding: 2px;
+}
+
 .counter {
   font-size: 16px;
   padding: 5px 10px;
