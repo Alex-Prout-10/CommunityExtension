@@ -36,11 +36,40 @@ function CurrWebsite({ title }: { title:string }) {
   return <p>Website: {title}</p>
 }
 
+function handleClick() {
+  chrome.tabs.query(
+    { active: true, currentWindow: true },
+    ([tab]) => {
+      if (!tab.id) return;
+
+      console.log("Sending message");
+      chrome.tabs.sendMessage(
+        tab.id,
+        { type: "SCRAPE_SITE" },
+        (response) => {
+
+          if (chrome.runtime.lastError) {
+            console.error(
+              "Message error:",
+              chrome.runtime.lastError.message
+            );
+            return;
+          }
+          
+          console.log("Recieved response...");
+          console.log("Response: ", response);
+        }
+      );
+    }
+  );
+}
+
 function App() {
 
   const [dangerLevel, setDangerLevel] = useState(false);
   const scanSite = () => { 
     setDangerLevel(prev => !prev);
+    handleClick();
   };
 
   return (
