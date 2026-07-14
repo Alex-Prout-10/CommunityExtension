@@ -10,8 +10,8 @@ function scrapeSite() {
     return webInfo;
 }
 
+// Listens for scan button click and sends basic info about the current website
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  console.log("Message received:", message);
   
   if (message.type === "SCRAPE_SITE") {
     
@@ -24,7 +24,6 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       images: result[3]
     };
 
-    console.log("Sending response", basicInfo);
     sendResponse(basicInfo);
   }
 
