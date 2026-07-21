@@ -2,6 +2,7 @@ import './App.css'
 
 console.log("Content Script loaded.");
 
+// Grabbing basic info from the site
 function scrapeSite() {
     const title = document.title;
     const url = document.URL;
@@ -33,6 +34,7 @@ function scrapeSite() {
 //   }
 // }
 
+// Helper function to create a warning block HTML element
 function createWarning(link: HTMLAnchorElement) {
   const warning = document.createElement("div");
   warning.textContent = "⚠️ This link may be unsafe.";
@@ -45,8 +47,9 @@ function createWarning(link: HTMLAnchorElement) {
   link.parentNode?.insertBefore(warning, link);
 }
 
+// Looks at the list above for any links containing these words 
+// and creates a warning there in the page
 const susWords = ["click here", "gift card", "password", "urgent", "information", "reset", "secure"];
-
 function highlightSusLinks() {
   const links = document.querySelectorAll("a");
   for (const link of links) {
