@@ -1,13 +1,21 @@
 type QuizAProps = {
     retryQuiz: () => void;
     backToScan: () => void;
-    answer: string;
+    userAnswer: string;
+    actualAnswer: string;
 };
 
-export default function QuizA({ retryQuiz, backToScan, answer }: QuizAProps) {
+export default function QuizA({ retryQuiz, backToScan, userAnswer, actualAnswer }: QuizAProps) {
+    
+    let resultText = "Incorrect";
+    if (userAnswer === actualAnswer) {
+        resultText = "Correct!!";
+    }
+    
     return (
         <div>
-            <h2>You submitted: {answer}</h2>
+            <h1>{resultText}</h1>
+            <h2>You submitted: {userAnswer}</h2>
 
             <button onClick={retryQuiz}>
                 Retry Quiz

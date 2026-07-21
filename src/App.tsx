@@ -4,6 +4,7 @@ import Home from './screens/Home'
 import Scan from './screens/Scan'
 import QuizQ from './screens/Quiz_Q'
 import QuizA from './screens/Quiz_A'
+import { question1 } from './components/quiz_q_placeholder'
 
 // interface ScanButtonProps {
 //   title: string;
@@ -80,13 +81,34 @@ import QuizA from './screens/Quiz_A'
 //   });
 // };
 
+type Question = {
+  question: string;
+  choices: string[];
+  answer: string;
+};
+
 function checkDanger() {
   return 10;
 }
 
 function App() {
   const [screen, setScreen] = useState<"home" | "scan" | "quiz_q" | "quiz_a">("home");
-  const [answer, setAnswer] = useState("");
+  const [currQuestion, setQuestion] = useState<Question>(
+    {
+    question: "PLACEHOLDER",
+    choices: ["a1", "a2", "a3"],
+    answer: "a3"
+    }
+  )
+  const [userAnswer, setAnswer] = useState("");
+  const [actualAnswer, setCorrect] = useState("");
+
+  function startQuiz() {
+    setQuestion(question1);
+    setCorrect(question1.answer);
+    setAnswer("")
+    setScreen("quiz_q");
+  }
 
   if (screen === "home") {
     return <Home scanWeb={() => setScreen("scan")} />;
@@ -96,9 +118,7 @@ function App() {
     return (
       <Scan 
         assessRisk={() => checkDanger()} 
-        takeQuiz={() => {
-          setAnswer("")
-          setScreen("quiz_q")}} 
+        takeQuiz={() => startQuiz()} 
       />
     );
   }
@@ -108,7 +128,8 @@ function App() {
       <QuizQ 
         backToScan={() => setScreen("scan")} 
         submitAnswer={() => setScreen("quiz_a")}
-        answer={answer}
+        curr_question={currQuestion}
+        userAnswer={userAnswer}
         setAnswer={setAnswer}
       />
     );
@@ -119,7 +140,9 @@ function App() {
       <QuizA
         retryQuiz={() => setScreen("quiz_q")}
         backToScan={() => setScreen("scan")}
-        answer={answer}
+        userAnswer={userAnswer}
+        actualAnswer={actualAnswer}
+
       />
     );
   }
@@ -155,6 +178,8 @@ function App() {
   //     <Mascot danger={dangerLevel}/>
   //   </div>
   // )
+
+  return <div>Unknown screen</div>;
 }
 
 
