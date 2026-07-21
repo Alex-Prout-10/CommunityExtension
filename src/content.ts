@@ -7,6 +7,7 @@ function scrapeSite() {
     const url = document.URL;
     const links = document.links.length;
     const images = document.images.length;
+
     const webInfo = [title, url, links, images];
 
     return webInfo;
@@ -32,14 +33,35 @@ function scrapeSite() {
 //   }
 // }
 
-function highlightLinks() {
+function createWarning(link: HTMLAnchorElement) {
+  const warning = document.createElement("div");
+  warning.textContent = "⚠️ This link may be unsafe.";
+  warning.style.background = "#ffe4e4";
+  warning.style.border = "2px solid purple";
+  warning.style.padding = "8px";
+  warning.style.marginBottom = "4px";
+  warning.style.maxWidth = "125px";
+
+  link.parentNode?.insertBefore(warning, link);
+}
+
+const susWords = ["click here", "gift card", "password", "urgent", "information", "reset", "secure"];
+
+function highlightSusLinks() {
   const links = document.querySelectorAll("a");
   for (const link of links) {
-    link.classList.add("highlight-link");
+    for (const word of susWords) {
+      if (link.text.includes(word)) {
+        link.classList.add("highlight-link");
+        createWarning(link);
+        console.log("found sus link: ", link.text);
+        break;
+      }
+    }
   }
 }
 
-highlightLinks();
+highlightSusLinks();
 
 // Listens for scan button click and sends basic info about the current website
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
