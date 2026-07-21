@@ -2,6 +2,8 @@ import { useState } from 'react'
 import './App.css'
 import Home from './screens/Home'
 import Scan from './screens/Scan'
+import QuizQ from './screens/Quiz_Q'
+import QuizA from './screens/Quiz_A'
 
 // interface ScanButtonProps {
 //   title: string;
@@ -83,14 +85,43 @@ function checkDanger() {
 }
 
 function App() {
-  const [screen, setScreen] = useState("home");
+  const [screen, setScreen] = useState<"home" | "scan" | "quiz_q" | "quiz_a">("home");
+  const [answer, setAnswer] = useState("");
 
   if (screen === "home") {
     return <Home scanWeb={() => setScreen("scan")} />;
   }
 
   if (screen === "scan") {
-    return <Scan assessRisk={() => checkDanger()} />;
+    return (
+      <Scan 
+        assessRisk={() => checkDanger()} 
+        takeQuiz={() => {
+          setAnswer("")
+          setScreen("quiz_q")}} 
+      />
+    );
+  }
+
+  if (screen === "quiz_q") {
+    return (
+      <QuizQ 
+        backToScan={() => setScreen("scan")} 
+        submitAnswer={() => setScreen("quiz_a")}
+        answer={answer}
+        setAnswer={setAnswer}
+      />
+    );
+  }
+
+  if (screen === "quiz_a") {
+    return (
+      <QuizA
+        retryQuiz={() => setScreen("quiz_q")}
+        backToScan={() => setScreen("scan")}
+        answer={answer}
+      />
+    );
   }
 
   // const [dangerLevel, setDangerLevel] = useState(false);

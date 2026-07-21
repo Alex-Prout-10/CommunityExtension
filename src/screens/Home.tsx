@@ -1,4 +1,3 @@
-
 type HomeProps = {
     scanWeb: () => void;
 };
