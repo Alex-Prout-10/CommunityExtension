@@ -1,8 +1,8 @@
 type QuizAProps = {
     retryQuiz: () => void;
     backToScan: () => void;
-    userAnswer: string;
-    actualAnswer: string;
+    userAnswer: string[];
+    actualAnswer: string[];
 };
 
 export default function QuizA({ retryQuiz, backToScan, userAnswer, actualAnswer }: QuizAProps) {
@@ -15,7 +15,8 @@ export default function QuizA({ retryQuiz, backToScan, userAnswer, actualAnswer 
     return (
         <div>
             <h1>{resultText}</h1>
-            <h2>You submitted: {userAnswer}</h2>
+            <h2>You submitted: {userAnswer[0]}</h2>
+            <p>{userAnswer[1]}</p>
 
             <button onClick={retryQuiz}>
                 Retry Quiz

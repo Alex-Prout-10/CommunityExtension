@@ -83,8 +83,8 @@ import { question1 } from './components/quiz_q_placeholder'
 
 type Question = {
   question: string;
-  choices: string[];
-  answer: string;
+  choices: string[][];
+  answer: string[];
 };
 
 function checkDanger() {
@@ -96,17 +96,17 @@ function App() {
   const [currQuestion, setQuestion] = useState<Question>(
     {
     question: "PLACEHOLDER",
-    choices: ["a1", "a2", "a3"],
-    answer: "a3"
+    choices: [ ["a1", "empty desc"], ["a2", "empty desc"], ["a3", "empty desc"] ],
+    answer: ["a3", "empty desc"]
     }
   )
-  const [userAnswer, setAnswer] = useState("");
-  const [actualAnswer, setCorrect] = useState("");
+  const [userAnswer, setAnswer] = useState(["", ""]);
+  const [actualAnswer, setCorrect] = useState(["", ""]);
 
   function startQuiz() {
     setQuestion(question1);
     setCorrect(question1.answer);
-    setAnswer("")
+    setAnswer(["", ""])
     setScreen("quiz_q");
   }
 

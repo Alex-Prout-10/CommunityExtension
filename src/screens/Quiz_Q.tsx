@@ -3,11 +3,11 @@ type QuizQProps = {
     submitAnswer: () => void;
     curr_question: {
         question: string;
-        choices: string[];
-        answer: string;
+        choices: string[][];
+        answer: string[];
     };
-    userAnswer: string;
-    setAnswer: React.Dispatch<React.SetStateAction<string>>;
+    userAnswer: string[];
+    setAnswer: React.Dispatch<React.SetStateAction<string[]>>;
 };
 
 export default function QuizQ({ backToScan, submitAnswer, curr_question, userAnswer, setAnswer }: QuizQProps) {
@@ -27,9 +27,9 @@ export default function QuizQ({ backToScan, submitAnswer, curr_question, userAns
                 name="choice" 
                 value={curr_question.choices[0]}
                 checked={userAnswer === curr_question.choices[0]}
-                onChange={(e) => setAnswer(e.target.value)}
+                onChange={() => setAnswer(curr_question.choices[0])}
                 />
-                {curr_question.choices[0]}
+                {curr_question.choices[0][0]}
             </label>
 
             <label>
@@ -38,9 +38,9 @@ export default function QuizQ({ backToScan, submitAnswer, curr_question, userAns
                 name="choice" 
                 value={curr_question.choices[1]}
                 checked={userAnswer === curr_question.choices[1]}
-                onChange={(e) => setAnswer(e.target.value)}
+                onChange={() => setAnswer(curr_question.choices[1])}
                 />
-                {curr_question.choices[1]}
+                {curr_question.choices[1][0]}
             </label>
 
             <label>
@@ -49,9 +49,9 @@ export default function QuizQ({ backToScan, submitAnswer, curr_question, userAns
                 name="choice" 
                 value={curr_question.choices[2]}
                 checked={userAnswer === curr_question.choices[2]}
-                onChange={(e) => setAnswer(e.target.value)}
+                onChange={() => setAnswer(curr_question.choices[2])}
                 />
-                {curr_question.choices[2]}
+                {curr_question.choices[2][0]}
             </label>
 
             <button onClick={submitAnswer}>
