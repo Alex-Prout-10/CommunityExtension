@@ -8,9 +8,10 @@ type QuizQProps = {
     };
     userAnswer: number;
     setAnswer: React.Dispatch<React.SetStateAction<number>>;
+    questionIndex: number;
 };
 
-export default function QuizQScreen({ backToScan, submitAnswer, curr_question, userAnswer, setAnswer }: QuizQProps) {
+export default function QuizQScreen({ backToScan, submitAnswer, curr_question, userAnswer, setAnswer, questionIndex }: QuizQProps) {
     return (
         <div>
             <h2>False Info Quiz</h2>
@@ -19,7 +20,7 @@ export default function QuizQScreen({ backToScan, submitAnswer, curr_question, u
                 Back to Scan
             </button>
 
-            <p>{curr_question.question}</p>
+            <p>{questionIndex}. {curr_question.question}</p>
 
             <label>
                 <input 

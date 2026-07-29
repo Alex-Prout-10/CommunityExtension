@@ -88,6 +88,20 @@ type Question = {
   answer: number;
 };
 
+function generateRandQuestions(questions: Question[]) {
+  const quiz = [];
+  const indicies: number[] = [];
+  while(quiz.length != 3) {
+    const questionIndex = Math.floor(Math.random() * questions.length);
+    if (!indicies.includes(questionIndex)) {
+      indicies.push(questionIndex);
+      quiz.push(questions[questionIndex]);
+    }
+  }
+
+  return quiz;
+}
+
 function checkDanger() {
   return 10;
 }
@@ -117,9 +131,10 @@ function App() {
   // creates a new quiz with 3 random questions chosen from the category given
   function startQuiz() {
     setScore(0);
-    setQuizQuestions(listOfQuestions); // TODO make this pick at random from a given category
+    const quiz = generateRandQuestions(listOfQuestions);
+    setQuizQuestions(quiz); 
     setNextIndex(0);
-    initQuestion(listOfQuestions[0]);
+    initQuestion(quiz[0]);
   }
 
   if (screen === "home") {
@@ -148,6 +163,7 @@ function App() {
         curr_question={currQuestion}
         userAnswer={userAnswer}
         setAnswer={setAnswer}
+        questionIndex={nextQuestionIndex}
       />
     );
   }
@@ -173,7 +189,7 @@ function App() {
   if (screen === "score") {
     return (
       <ScoreScreen 
-        retryQuiz={() => setScreen("quiz_q")}
+        retryQuiz={() => startQuiz()}
         backToScan={() => setScreen("scan")} 
         totalCorrect={totalScore}
       />

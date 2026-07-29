@@ -6,6 +6,7 @@ type ScoreProps = {
 
 export default function ScoreScreen({ retryQuiz, backToScan, totalCorrect }: ScoreProps) {
     
+    // TODO -> FIX RETRY QUIZ BUTTON (goes back to prev question currently)
     return (
         <div>
             <h1>Score for False Info Quiz:</h1>
