@@ -2,7 +2,7 @@ type HomeProps = {
     scanWeb: () => void;
 };
 
-export default function Home({ scanWeb }: HomeProps) {
+export default function HomeScreen({ scanWeb }: HomeProps) {
     return (
         <div className="home-screen">
             <h2>Safe Scan</h2>

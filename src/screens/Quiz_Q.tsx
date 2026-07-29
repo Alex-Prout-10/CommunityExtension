@@ -10,7 +10,7 @@ type QuizQProps = {
     setAnswer: React.Dispatch<React.SetStateAction<number>>;
 };
 
-export default function QuizQ({ backToScan, submitAnswer, curr_question, userAnswer, setAnswer }: QuizQProps) {
+export default function QuizQScreen({ backToScan, submitAnswer, curr_question, userAnswer, setAnswer }: QuizQProps) {
     return (
         <div>
             <h2>False Info Quiz</h2>
@@ -19,7 +19,7 @@ export default function QuizQ({ backToScan, submitAnswer, curr_question, userAns
                 Back to Scan
             </button>
 
-            <p>1. {curr_question.question}</p>
+            <p>{curr_question.question}</p>
 
             <label>
                 <input 

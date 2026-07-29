@@ -3,7 +3,7 @@ type ScanProps = {
     takeQuiz: () => void;
 };
 
-export default function Scan({ assessRisk, takeQuiz }: ScanProps) {
+export default function ScanScreen({ assessRisk, takeQuiz }: ScanProps) {
     const riskScore = assessRisk();
     
     return (

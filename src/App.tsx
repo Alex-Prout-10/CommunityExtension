@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import './App.css'
-import Home from './screens/Home'
-import Scan from './screens/Scan'
-import QuizQ from './screens/Quiz_Q'
-import QuizA from './screens/Quiz_A'
-import { question1 } from './components/quiz_q_placeholder'
+import HomeScreen from './screens/Home'
+import ScanScreen from './screens/Scan'
+import QuizQScreen from './screens/Quiz_Q'
+import QuizAScreen from './screens/Quiz_A'
+import ScoreScreen from './screens/Score'
+import { listOfQuestions } from './components/quiz_q_placeholder'
 
 // interface ScanButtonProps {
 //   title: string;
@@ -92,7 +93,7 @@ function checkDanger() {
 }
 
 function App() {
-  const [screen, setScreen] = useState<"home" | "scan" | "quiz_q" | "quiz_a">("home");
+  const [screen, setScreen] = useState<"home" | "scan" | "quiz_q" | "quiz_a" | "score">("home");
   const [currQuestion, setQuestion] = useState<Question>(
     {
     question: "PLACEHOLDER",
@@ -101,21 +102,33 @@ function App() {
     }
   )
   const [userAnswer, setAnswer] = useState(-1);
+  const [totalScore, setScore] = useState(0);
+  const [currQuiz, setQuizQuestions] = useState<Question[]>([]);
+  const [nextQuestionIndex, setNextIndex] = useState(0);
 
   // init the vars for the curr question and clear the prev answer
-  function startQuiz() {
-    setQuestion(question1);
-    setAnswer(-1)
+  function initQuestion(question: Question) {
+    setQuestion(question);
+    setAnswer(-1);
+    setNextIndex(prev => prev + 1);
     setScreen("quiz_q");
   }
 
+  // creates a new quiz with 3 random questions chosen from the category given
+  function startQuiz() {
+    setScore(0);
+    setQuizQuestions(listOfQuestions); // TODO make this pick at random from a given category
+    setNextIndex(0);
+    initQuestion(listOfQuestions[0]);
+  }
+
   if (screen === "home") {
-    return <Home scanWeb={() => setScreen("scan")} />;
+    return <HomeScreen scanWeb={() => setScreen("scan")} />;
   }
 
   if (screen === "scan") {
     return (
-      <Scan 
+      <ScanScreen 
         assessRisk={() => checkDanger()} 
         takeQuiz={() => startQuiz()} 
       />
@@ -124,7 +137,7 @@ function App() {
 
   if (screen === "quiz_q") {
     return (
-      <QuizQ 
+      <QuizQScreen 
         backToScan={() => setScreen("scan")} 
         submitAnswer={() => {
             if (userAnswer != -1) {
@@ -141,12 +154,28 @@ function App() {
 
   if (screen === "quiz_a") {
     return (
-      <QuizA
-        retryQuiz={() => setScreen("quiz_q")}
-        backToScan={() => setScreen("scan")}
+      <QuizAScreen
+        retryQuestion={() => setScreen("quiz_q")}
+        next={() => {
+          if (nextQuestionIndex >= currQuiz.length) {
+            setScreen("score");
+          } else {
+            initQuestion(currQuiz[nextQuestionIndex]);
+          }
+        }}
         userAnswer={userAnswer}
         curr_question={currQuestion}
+        addToScore={() => setScore(prev => prev + 1)}
+      />
+    );
+  }
 
+  if (screen === "score") {
+    return (
+      <ScoreScreen 
+        retryQuiz={() => setScreen("quiz_q")}
+        backToScan={() => setScreen("scan")} 
+        totalCorrect={totalScore}
       />
     );
   }

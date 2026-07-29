@@ -1,15 +1,16 @@
 type QuizAProps = {
-    retryQuiz: () => void;
-    backToScan: () => void;
+    retryQuestion: () => void;
+    next: () => void;
     userAnswer: number;
     curr_question: {
         question: string;
         choices: string[][];
         answer: number;
     };
+    addToScore: () => void;
 };
 
-export default function QuizA({ retryQuiz, backToScan, userAnswer, curr_question }: QuizAProps) {
+export default function QuizAScreen({ retryQuestion, next, userAnswer, curr_question, addToScore }: QuizAProps) {
     
     let resultText = "Incorrect";
     if (userAnswer === curr_question.answer) {
@@ -22,12 +23,18 @@ export default function QuizA({ retryQuiz, backToScan, userAnswer, curr_question
             <h2>You submitted: {curr_question.choices[userAnswer][0]}</h2>
             <p>{curr_question.choices[userAnswer][1]}</p>
 
-            <button onClick={retryQuiz}>
-                Retry Quiz
+            <button onClick={retryQuestion} disabled={userAnswer === curr_question.answer}>
+                Retry Question
             </button>
 
-            <button onClick={backToScan}>
-                Back to Scan
+            <button onClick={() => {
+                    if (userAnswer === curr_question.answer) {
+                        addToScore();
+                    }
+                    next();
+                }
+            }>
+                Next
             </button>
 
         </div>
