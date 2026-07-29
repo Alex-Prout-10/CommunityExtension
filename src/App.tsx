@@ -84,7 +84,7 @@ import { question1 } from './components/quiz_q_placeholder'
 type Question = {
   question: string;
   choices: string[][];
-  answer: string[];
+  answer: number;
 };
 
 function checkDanger() {
@@ -97,16 +97,15 @@ function App() {
     {
     question: "PLACEHOLDER",
     choices: [ ["a1", "empty desc"], ["a2", "empty desc"], ["a3", "empty desc"] ],
-    answer: ["a3", "empty desc"]
+    answer: 2
     }
   )
-  const [userAnswer, setAnswer] = useState(["", ""]);
-  const [actualAnswer, setCorrect] = useState(["", ""]);
+  const [userAnswer, setAnswer] = useState(-1);
 
+  // init the vars for the curr question and clear the prev answer
   function startQuiz() {
     setQuestion(question1);
-    setCorrect(question1.answer);
-    setAnswer(["", ""])
+    setAnswer(-1)
     setScreen("quiz_q");
   }
 
@@ -127,7 +126,12 @@ function App() {
     return (
       <QuizQ 
         backToScan={() => setScreen("scan")} 
-        submitAnswer={() => setScreen("quiz_a")}
+        submitAnswer={() => {
+            if (userAnswer != -1) {
+              setScreen("quiz_a")
+            }
+          }
+        }
         curr_question={currQuestion}
         userAnswer={userAnswer}
         setAnswer={setAnswer}
@@ -141,7 +145,7 @@ function App() {
         retryQuiz={() => setScreen("quiz_q")}
         backToScan={() => setScreen("scan")}
         userAnswer={userAnswer}
-        actualAnswer={actualAnswer}
+        curr_question={currQuestion}
 
       />
     );

@@ -4,10 +4,10 @@ type QuizQProps = {
     curr_question: {
         question: string;
         choices: string[][];
-        answer: string[];
+        answer: number;
     };
-    userAnswer: string[];
-    setAnswer: React.Dispatch<React.SetStateAction<string[]>>;
+    userAnswer: number;
+    setAnswer: React.Dispatch<React.SetStateAction<number>>;
 };
 
 export default function QuizQ({ backToScan, submitAnswer, curr_question, userAnswer, setAnswer }: QuizQProps) {
@@ -26,8 +26,8 @@ export default function QuizQ({ backToScan, submitAnswer, curr_question, userAns
                 type="radio" 
                 name="choice" 
                 value={curr_question.choices[0]}
-                checked={userAnswer === curr_question.choices[0]}
-                onChange={() => setAnswer(curr_question.choices[0])}
+                checked={userAnswer === 0}
+                onChange={() => setAnswer(0)}
                 />
                 {curr_question.choices[0][0]}
             </label>
@@ -37,8 +37,8 @@ export default function QuizQ({ backToScan, submitAnswer, curr_question, userAns
                 type="radio" 
                 name="choice" 
                 value={curr_question.choices[1]}
-                checked={userAnswer === curr_question.choices[1]}
-                onChange={() => setAnswer(curr_question.choices[1])}
+                checked={userAnswer === 1}
+                onChange={() => setAnswer(1)}
                 />
                 {curr_question.choices[1][0]}
             </label>
@@ -48,8 +48,8 @@ export default function QuizQ({ backToScan, submitAnswer, curr_question, userAns
                 type="radio" 
                 name="choice" 
                 value={curr_question.choices[2]}
-                checked={userAnswer === curr_question.choices[2]}
-                onChange={() => setAnswer(curr_question.choices[2])}
+                checked={userAnswer === 2}
+                onChange={() => setAnswer(2)}
                 />
                 {curr_question.choices[2][0]}
             </label>

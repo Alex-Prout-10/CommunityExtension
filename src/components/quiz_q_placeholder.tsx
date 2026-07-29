@@ -1,4 +1,6 @@
 
+
+// Mabe change answer to the index of the correct one?? -> should work better than checking string[] === string[]
 export const question1 = {
     question: "What do you check to make sure the information on the website is true?",
     choices: [ 
@@ -6,5 +8,5 @@ export const question1 = {
         ["Sources", "Yes! We want to ensure all the information on the site comes from credible sources."], 
         ["Today's Date", "Today's date can't verify if the site is credible."]
     ],
-    answer: ["Sources", "Yes! We want to ensure all the information on the site comes from credible sources."]
+    answer: 1
 };
