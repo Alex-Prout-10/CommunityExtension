@@ -164,6 +164,7 @@ function App() {
         userAnswer={userAnswer}
         setAnswer={setAnswer}
         questionIndex={nextQuestionIndex}
+        category='TESTING'
       />
     );
   }
@@ -192,6 +193,7 @@ function App() {
         retryQuiz={() => startQuiz()}
         backToScan={() => setScreen("scan")} 
         totalCorrect={totalScore}
+        category='TESTING'
       />
     );
   }

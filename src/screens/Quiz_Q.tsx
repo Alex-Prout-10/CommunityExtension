@@ -9,12 +9,13 @@ type QuizQProps = {
     userAnswer: number;
     setAnswer: React.Dispatch<React.SetStateAction<number>>;
     questionIndex: number;
+    category: string;
 };
 
-export default function QuizQScreen({ backToScan, submitAnswer, curr_question, userAnswer, setAnswer, questionIndex }: QuizQProps) {
+export default function QuizQScreen({ backToScan, submitAnswer, curr_question, userAnswer, setAnswer, questionIndex, category }: QuizQProps) {
     return (
         <div>
-            <h2>False Info Quiz</h2>
+            <h2>{category} Quiz</h2>
 
             <button onClick={backToScan}>
                 Back to Scan

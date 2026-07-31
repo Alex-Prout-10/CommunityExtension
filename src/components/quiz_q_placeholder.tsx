@@ -20,13 +20,23 @@ const question2 = {
 };
 
 const question3 = {
-    question: "?",
+    question: ":D",
     choices: [ 
-        ["a1", ""], 
+        ["this is correct", "swEEEEEt"], 
         ["a2", ""], 
         ["a3", ""]
     ],
     answer: 0
 };
 
-export const listOfQuestions = [question1, question2, question3];
+const question4 = {
+    question: "whAAAAA?",
+    choices: [ 
+        ["a1", ""], 
+        ["correct", "yep good job bro"], 
+        ["a3", ""]
+    ],
+    answer: 1
+};
+
+export const listOfQuestions = [question1, question2, question3, question4];

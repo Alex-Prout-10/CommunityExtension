@@ -2,14 +2,15 @@ type ScoreProps = {
     retryQuiz: () => void;
     backToScan: () => void;
     totalCorrect: number;
+    category: string;
 };
 
-export default function ScoreScreen({ retryQuiz, backToScan, totalCorrect }: ScoreProps) {
+export default function ScoreScreen({ retryQuiz, backToScan, totalCorrect, category }: ScoreProps) {
     
     // TODO -> FIX RETRY QUIZ BUTTON (goes back to prev question currently)
     return (
         <div>
-            <h1>Score for False Info Quiz:</h1>
+            <h2>Score for {category} Quiz:</h2>
             <h2>{totalCorrect} / 3</h2>
             <p>Good Job!!</p>
 
