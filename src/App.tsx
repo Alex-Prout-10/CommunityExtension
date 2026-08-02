@@ -82,12 +82,23 @@ import { listOfQuestions } from './components/quiz_q_placeholder'
 //   });
 // };
 
+/**
+ * Defines a Question type
+ * question - the curr question being asked
+ * choices - a list of tuples with the [answer option, an explination why it's correct or not]
+ * answer - the index of the correct option in choices
+ */
 type Question = {
   question: string;
   choices: string[][];
   answer: number;
 };
 
+/**
+ * A method to generate a quiz of 3 random Questions from a list of Questions
+ * @param questions - a list of Questions to sample from
+ * @returns a list of 3 random Questions selected from the inputted list
+ */
 function generateRandQuestions(questions: Question[]) {
   const quiz = [];
   const indicies: number[] = [];
@@ -102,6 +113,7 @@ function generateRandQuestions(questions: Question[]) {
   return quiz;
 }
 
+// TODO
 function checkDanger() {
   return 10;
 }
@@ -131,7 +143,7 @@ function App() {
   // creates a new quiz with 3 random questions chosen from the category given
   function startQuiz() {
     setScore(0);
-    const quiz = generateRandQuestions(listOfQuestions);
+    const quiz = generateRandQuestions(listOfQuestions); // TODO change to selecting a category
     setQuizQuestions(quiz); 
     setNextIndex(0);
     initQuestion(quiz[0]);
@@ -230,6 +242,7 @@ function App() {
   //   </div>
   // )
 
+  // if something doesn't load correctly
   return <div>Unknown screen</div>;
 }
 
