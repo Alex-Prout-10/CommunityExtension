@@ -5,7 +5,8 @@ import ScanScreen from './screens/Scan'
 import QuizQScreen from './screens/Quiz_Q'
 import QuizAScreen from './screens/Quiz_A'
 import ScoreScreen from './screens/Score'
-import { listOfQuestions } from './components/quiz_q_placeholder'
+import QuizMenuScreen from './screens/Quiz_Menu'
+import { listOfCats } from './components/quiz_q_placeholder'
 
 // interface ScanButtonProps {
 //   title: string;
@@ -118,8 +119,13 @@ function checkDanger() {
   return 10;
 }
 
+// TODO -> listOfCategories: Category[]
+function highestRiskCat() {
+  return 0;
+}
+
 function App() {
-  const [screen, setScreen] = useState<"home" | "scan" | "quiz_q" | "quiz_a" | "score">("home");
+  const [screen, setScreen] = useState<"home" | "scan" | "quiz_q" | "quiz_a" | "score" | "quiz_menu">("home");
   const [currQuestion, setQuestion] = useState<Question>(
     {
     question: "PLACEHOLDER",
@@ -131,6 +137,7 @@ function App() {
   const [totalScore, setScore] = useState(0);
   const [currQuiz, setQuizQuestions] = useState<Question[]>([]);
   const [nextQuestionIndex, setNextIndex] = useState(0);
+  const [currCatIndex, setCatIndex] = useState(-1);
 
   // init the vars for the curr question and clear the prev answer
   function initQuestion(question: Question) {
@@ -141,23 +148,31 @@ function App() {
   }
 
   // creates a new quiz with 3 random questions chosen from the category given
-  function startQuiz() {
+  function startQuiz(category: number) {
     setScore(0);
-    const quiz = generateRandQuestions(listOfQuestions); // TODO change to selecting a category
+    setCatIndex(category)
+    const quiz = generateRandQuestions(listOfCats[currCatIndex].questions); 
     setQuizQuestions(quiz); 
     setNextIndex(0);
     initQuestion(quiz[0]);
   }
 
+  function initScanScreen() {
+    const highest = highestRiskCat();
+    setCatIndex(highest);
+    setScreen("scan");
+  }
+
   if (screen === "home") {
-    return <HomeScreen scanWeb={() => setScreen("scan")} />;
+    return <HomeScreen initScan={initScanScreen}/>;
   }
 
   if (screen === "scan") {
     return (
       <ScanScreen 
         assessRisk={() => checkDanger()} 
-        takeQuiz={() => startQuiz()} 
+        takeQuiz={() => startQuiz(currCatIndex)} 
+        quizMenu={() => setScreen("quiz_menu")}
       />
     );
   }
@@ -165,7 +180,7 @@ function App() {
   if (screen === "quiz_q") {
     return (
       <QuizQScreen 
-        backToScan={() => setScreen("scan")} 
+        backToScan={() => initScanScreen()} 
         submitAnswer={() => {
             if (userAnswer != -1) {
               setScreen("quiz_a")
@@ -176,7 +191,7 @@ function App() {
         userAnswer={userAnswer}
         setAnswer={setAnswer}
         questionIndex={nextQuestionIndex}
-        category='TESTING'
+        category={listOfCats[currCatIndex].name}
       />
     );
   }
@@ -202,12 +217,22 @@ function App() {
   if (screen === "score") {
     return (
       <ScoreScreen 
-        retryQuiz={() => startQuiz()}
-        backToScan={() => setScreen("scan")} 
+        retryQuiz={() => startQuiz(currCatIndex)}
+        backToScan={() => initScanScreen()} 
         totalCorrect={totalScore}
-        category='TESTING'
+        category={listOfCats[currCatIndex].name}
       />
     );
+  }
+
+  if (screen === "quiz_menu") {
+    return (
+      <QuizMenuScreen 
+        backToScan={() => initScanScreen()}
+        quiz0={() => startQuiz(0)}
+        quiz1={() => startQuiz(1)}
+      />
+    )
   }
 
   // const [dangerLevel, setDangerLevel] = useState(false);

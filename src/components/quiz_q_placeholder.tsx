@@ -1,4 +1,10 @@
 
+type Question = {
+  question: string;
+  choices: string[][];
+  answer: number;
+};
+
 const question1 = {
     question: "What do you check to make sure the information on the website is true?",
     choices: [ 
@@ -20,7 +26,7 @@ const question2 = {
 };
 
 const question3 = {
-    question: ":D",
+    question: "CAT 1  :D",
     choices: [ 
         ["this is correct", "swEEEEEt"], 
         ["a2", ""], 
@@ -30,7 +36,7 @@ const question3 = {
 };
 
 const question4 = {
-    question: "whAAAAA?",
+    question: "CAT 1 whAAAAA?",
     choices: [ 
         ["a1", ""], 
         ["correct", "yep good job bro"], 
@@ -39,4 +45,65 @@ const question4 = {
     answer: 1
 };
 
-export const listOfQuestions = [question1, question2, question3, question4];
+const question5 = {
+    question: "CAT 2 testing",
+    choices: [ 
+        ["a1", ""], 
+        ["correct", "yep good job bro"], 
+        ["a3", ""]
+    ],
+    answer: 1
+};
+
+const question6 = {
+    question: "CAT 2  hmmmmmm",
+    choices: [ 
+        ["a1", ""], 
+        ["a2", ""], 
+        ["correct", "yep good job bro"]
+    ],
+    answer: 2
+};
+
+const question7 = {
+    question: "CAT 2  placeholder",
+    choices: [ 
+        ["a1", ""], 
+        ["correct", "yep good job bro"], 
+        ["a3", ""]
+    ],
+    answer: 1
+};
+
+const question8 = {
+    question: "CAT 2  qq",
+    choices: [ 
+        ["correct", "yep good job bro"], 
+        ["a2", "nah"], 
+        ["a3", ""]
+    ],
+    answer: 0
+};
+
+type Category = {
+  name: string;
+  description: string;
+  questions: Question[];
+};
+
+const category1 = {
+    name: "False Info",
+    description: "TODO",
+    questions: [question1, question2, question3, question4]
+};
+
+const category2 = {
+    name: "AI Images",
+    description: "TODO",
+    questions: [question5, question6, question7, question8]
+};
+
+export const listOfCats: Category[] = [
+  category1,
+  category2,
+];

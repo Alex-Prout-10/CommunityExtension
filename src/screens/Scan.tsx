@@ -1,9 +1,10 @@
 type ScanProps = {
     assessRisk: () => number;
     takeQuiz: () => void;
+    quizMenu: () => void;
 };
 
-export default function ScanScreen({ assessRisk, takeQuiz }: ScanProps) {
+export default function ScanScreen({ assessRisk, takeQuiz, quizMenu }: ScanProps) {
     const riskScore = assessRisk();
     
     return (
@@ -15,6 +16,10 @@ export default function ScanScreen({ assessRisk, takeQuiz }: ScanProps) {
 
             <button onClick={takeQuiz} >
                 Take Quiz
+            </button>
+
+            <button onClick={quizMenu} >
+                All Quizzes
             </button>
         </>
     );
