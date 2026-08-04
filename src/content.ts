@@ -2,6 +2,32 @@ import './App.css'
 
 console.log("Content Script loaded.");
 
+function detectDarkMode(): boolean {
+  // Check site theme first
+  const html = document.documentElement;
+
+  if (
+    html.classList.contains("dark") ||
+    html.classList.contains("dark-mode")
+  ) {
+    return true;
+  }
+
+  // Fall back to background color
+  const bg = window.getComputedStyle(document.body).backgroundColor;
+
+  const rgb = bg.match(/\d+/g);
+
+  if (!rgb) return false;
+
+  const [r, g, b] = rgb.map(Number);
+
+  const brightness =
+    (r * 299 + g * 587 + b * 114) / 1000;
+
+  return brightness < 128;
+}
+
 // Grabbing basic info from the site
 function scrapeSite() {
     const title = document.title;
@@ -34,11 +60,19 @@ function scrapeSite() {
 //   }
 // }
 
+let isDark = detectDarkMode();
+
 // Helper function to create a warning block HTML element
 function createWarning(link: HTMLAnchorElement) {
   const warning = document.createElement("div");
   warning.textContent = "⚠️ This link may be unsafe.";
-  warning.style.background = "#ffe4e4";
+
+  if (isDark) {
+    warning.style.background = "#3f3b3b";
+  } else {
+    warning.style.background = "#ffe4e4";
+  }
+  
   warning.style.border = "2px solid purple";
   warning.style.padding = "8px";
   warning.style.marginBottom = "4px";
@@ -69,7 +103,13 @@ highlightSusLinks();
 function showMascot() {
   const img = document.createElement("img");
 
-  img.src = chrome.runtime.getURL("MILE-oh.jpg");
+  let whichMILEoh = "MILE-oh_lightmode.jpg";
+
+  if (isDark) {
+    whichMILEoh = "MILE-oh_darkmode.jpg"
+  } 
+
+  img.src = chrome.runtime.getURL(whichMILEoh);
   img.alt = "Safe Scan Mascot";
 
   img.style.position = "fixed";

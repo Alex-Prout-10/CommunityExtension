@@ -12,7 +12,7 @@ export default defineConfig({
         version: "1.0.0",
         web_accessible_resources: [
           {
-            resources: ["MILE-oh.jpg"],
+            resources: ["MILE-oh_lightmode.jpg", "MILE-oh_darkmode.jpg"],
             matches: ["<all_urls>"],
           },
         ],
