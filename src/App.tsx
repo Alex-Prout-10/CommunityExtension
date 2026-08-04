@@ -150,8 +150,8 @@ function App() {
   // creates a new quiz with 3 random questions chosen from the category given
   function startQuiz(category: number) {
     setScore(0);
-    setCatIndex(category)
-    const quiz = generateRandQuestions(listOfCats[currCatIndex].questions); 
+    setCatIndex(category);
+    const quiz = generateRandQuestions(listOfCats[category].questions); 
     setQuizQuestions(quiz); 
     setNextIndex(0);
     initQuestion(quiz[0]);

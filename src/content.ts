@@ -66,6 +66,23 @@ function highlightSusLinks() {
 
 highlightSusLinks();
 
+function showMascot() {
+  const img = document.createElement("img");
+
+  img.src = chrome.runtime.getURL("MILE-oh.jpg");
+  img.alt = "Safe Scan Mascot";
+
+  img.style.position = "fixed";
+  img.style.bottom = "20px";
+  img.style.right = "20px";
+  img.style.width = "150px";
+  img.style.zIndex = "999999";
+
+  document.body.appendChild(img);
+}
+
+showMascot();
+
 // Listens for scan button click and sends basic info about the current website
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   

@@ -10,6 +10,12 @@ export default defineConfig({
         manifest_version: 3,
         name: "Safe Scan",
         version: "1.0.0",
+        web_accessible_resources: [
+          {
+            resources: ["MILE-oh.jpg"],
+            matches: ["<all_urls>"],
+          },
+        ],
 
         action: {
           default_popup: "index.html",
