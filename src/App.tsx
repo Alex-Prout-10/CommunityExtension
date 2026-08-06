@@ -7,6 +7,7 @@ import QuizAScreen from './screens/Quiz_A'
 import ScoreScreen from './screens/Score'
 import QuizMenuScreen from './screens/Quiz_Menu'
 import { listOfCats } from './components/quiz_q_placeholder'
+import { recordQuizAttempt } from './lib/api'
 
 // interface ScanButtonProps {
 //   title: string;
@@ -201,6 +202,14 @@ function App() {
       <QuizAScreen
         retryQuestion={() => setScreen("quiz_q")}
         next={() => {
+          // Record the completed attempt without blocking the learner's next screen if the API is offline.
+          void recordQuizAttempt({
+            category: listOfCats[currCatIndex].name,
+            questionText: currQuestion.question,
+            selectedAnswer: userAnswer,
+            correctAnswer: currQuestion.answer,
+            wasCorrect: userAnswer === currQuestion.answer,
+          }).catch((error: unknown) => console.warn('Could not save quiz attempt:', error))
           if (nextQuestionIndex >= currQuiz.length) {
             setScreen("score");
           } else {
@@ -252,7 +261,7 @@ function App() {
 
   // return (
   //   <div className="pop-up">
-  //     <h4>Safe Scan</h4>
+  //     <h4>MILE-oh</h4>
   //     <CurrWebsite 
   //     title={basicInfo.title} 
   //     url={basicInfo.url}

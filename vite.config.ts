@@ -8,7 +8,7 @@ export default defineConfig({
     crx({
       manifest: {
         manifest_version: 3,
-        name: "Safe Scan",
+        name: "MILE-oh",
         version: "1.0.0",
         web_accessible_resources: [
           {
@@ -28,7 +28,9 @@ export default defineConfig({
           },
         ],
 
-        permissions: ["activeTab"],
+        permissions: ["activeTab", "storage"],
+        // Local development. Replace this with your HTTPS API origin before publishing.
+        host_permissions: ["http://localhost:3000/*"],
       }
     }),
   ],

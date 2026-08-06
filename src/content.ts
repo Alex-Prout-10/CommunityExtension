@@ -67,18 +67,32 @@ function highlightSusLinks() {
 highlightSusLinks();
 
 function showMascot() {
+  const mascotId = "mile-oh-mascot";
+  if (document.getElementById(mascotId)) return;
+
   const img = document.createElement("img");
 
+  img.id = mascotId;
   img.src = chrome.runtime.getURL("MILE-oh.jpg");
-  img.alt = "Safe Scan Mascot";
+  img.alt = "MILE-oh, the Media Information and Literacy Extension mascot";
 
   img.style.position = "fixed";
   img.style.bottom = "20px";
   img.style.right = "20px";
   img.style.width = "150px";
+  img.style.height = "auto";
   img.style.zIndex = "999999";
+  img.style.display = "block";
+  img.style.pointerEvents = "none";
 
-  document.body.appendChild(img);
+  img.addEventListener("error", () => console.warn("MILE-oh mascot could not be loaded:", img.src));
+
+  const addMascot = () => document.body?.appendChild(img);
+  if (document.body) {
+    addMascot();
+  } else {
+    document.addEventListener("DOMContentLoaded", addMascot, { once: true });
+  }
 }
 
 showMascot();
