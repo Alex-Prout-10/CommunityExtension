@@ -5,7 +5,8 @@ type HomeProps = {
 export default function HomeScreen({ initScan }: HomeProps) {
     return (
         <div className="home-screen">
-            <h2>Safe Scan</h2>
+            <h2>MILE-oh</h2>
+            <p>Media Information and Literacy Extension</p>
 
             <button onClick={initScan}>
                 Scan Website

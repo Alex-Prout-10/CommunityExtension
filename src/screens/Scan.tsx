@@ -88,7 +88,7 @@ export default function ScanScreen({ assessRisk, takeQuiz, quizMenu }: ScanProps
     
     return (
         <>
-            <h3>Safe Scan</h3>
+            <h3>MILE-oh Scan</h3>
             <h4>Risk Score = {riskScore} / 100</h4>
 
             <p>Test Scan Page</p>
