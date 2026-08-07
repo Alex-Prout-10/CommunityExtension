@@ -39,17 +39,15 @@ app.use(express.json({ limit: '20kb' }))
 const sessionIdSchema = z.object({ sessionId: z.string().uuid() })
 
 const quizAttemptSchema = sessionIdSchema.extend({
-  category: z.string().trim().min(1).max(100),
-  questionText: z.string().trim().min(1).max(2_000),
+  questionId: z.string().uuid(),
   selectedAnswer: z.number().int().min(0).max(20),
-  correctAnswer: z.number().int().min(0).max(20),
-  wasCorrect: z.boolean(),
 })
 
 const scanSchema = sessionIdSchema.extend({
   // This should be an origin such as https://example.com, not a full browsing URL.
   pageOrigin: z.string().url().max(2_048).transform((value) => new URL(value).origin),
   riskScore: z.number().int().min(0).max(100),
+  pageCategory: z.enum(['shopping', 'social', 'news', 'video', 'education', 'forum', 'general']),
   findings: z.array(z.object({
     type: z.nativeEnum(FindingType),
     severity: z.number().int().min(1).max(5),
@@ -72,15 +70,63 @@ app.post('/api/sessions', async (_request, response) => {
   response.status(201).json({ sessionId: session.id })
 })
 
+app.get('/api/categories', async (_request, response) => {
+  const categories = await prisma.category.findMany({
+    orderBy: { title: 'asc' },
+    select: { id: true, slug: true, title: true, description: true },
+  })
+  response.json(categories)
+})
+
+app.get('/api/categories/:slug/questions', async (request, response) => {
+  const category = await prisma.category.findUnique({
+    where: { slug: request.params.slug },
+    select: {
+      questions: {
+        orderBy: { createdAt: 'asc' },
+        select: {
+          id: true,
+          prompt: true,
+          options: { orderBy: { position: 'asc' }, select: { id: true, position: true, text: true } },
+        },
+      },
+    },
+  })
+  if (!category) return response.status(404).json({ error: 'Quiz category not found.' })
+  response.json(category.questions)
+})
+
 app.post('/api/quiz-attempts', async (request, response) => {
   const input = parseBody(quizAttemptSchema, request.body)
   if (!input) return response.status(400).json({ error: 'Invalid quiz-attempt payload.' })
 
-  const sessionExists = await prisma.session.findUnique({ where: { id: input.sessionId }, select: { id: true } })
-  if (!sessionExists) return response.status(404).json({ error: 'Session not found.' })
+  const [session, question] = await Promise.all([
+    prisma.session.findUnique({ where: { id: input.sessionId }, select: { id: true } }),
+    prisma.question.findUnique({
+      where: { id: input.questionId },
+      include: { category: { select: { title: true } }, options: { orderBy: { position: 'asc' } } },
+    }),
+  ])
+  if (!session) return response.status(404).json({ error: 'Session not found.' })
+  if (!question) return response.status(404).json({ error: 'Question not found.' })
 
-  const attempt = await prisma.quizAttempt.create({ data: input })
-  response.status(201).json({ id: attempt.id })
+  const selectedOption = question.options.find((option) => option.position === input.selectedAnswer)
+  const correctOption = question.options.find((option) => option.isCorrect)
+  if (!selectedOption || !correctOption) return response.status(400).json({ error: 'Invalid answer choice.' })
+
+  const wasCorrect = selectedOption.id === correctOption.id
+  const attempt = await prisma.quizAttempt.create({
+    data: {
+      sessionId: session.id,
+      questionId: question.id,
+      category: question.category.title,
+      questionText: question.prompt,
+      selectedAnswer: selectedOption.position,
+      correctAnswer: correctOption.position,
+      wasCorrect,
+    },
+  })
+  response.status(201).json({ id: attempt.id, wasCorrect, explanation: selectedOption.explanation })
 })
 
 app.post('/api/scans', async (request, response) => {
@@ -95,6 +141,7 @@ app.post('/api/scans', async (request, response) => {
       sessionId: input.sessionId,
       pageOrigin: input.pageOrigin,
       riskScore: input.riskScore,
+      pageCategory: input.pageCategory,
       findings: { create: input.findings },
     },
   })

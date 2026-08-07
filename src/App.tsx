@@ -6,171 +6,119 @@ import QuizQScreen from './screens/Quiz_Q'
 import QuizAScreen from './screens/Quiz_A'
 import ScoreScreen from './screens/Score'
 import QuizMenuScreen from './screens/Quiz_Menu'
-import { listOfCats } from './components/quiz_q_placeholder'
-import { recordQuizAttempt } from './lib/api'
+import { getQuizCategories, getQuizQuestions, recordQuizAttempt, recordScan } from './lib/api'
+import type { PageScan } from './lib/pageScan'
+import type { QuizAnswerResult, QuizCategory, QuizQuestion } from './lib/quiz'
 
-/**
- * Defines a Question type
- * question - the curr question being asked
- * choices - a list of tuples with the [answer option, an explination why it's correct or not]
- * answer - the index of the correct option in choices
- */
-type Question = {
-  question: string;
-  choices: string[][];
-  answer: number;
-};
+type Screen = 'home' | 'scan' | 'quiz_q' | 'quiz_a' | 'score' | 'quiz_menu'
 
-/**
- * A method to generate a quiz of 3 random Questions from a list of Questions
- * @param questions - a list of Questions to sample from
- * @returns a list of 3 random Questions selected from the inputted list
- */
-function generateRandQuestions(questions: Question[]) {
-  const quiz = [];
-  const indicies: number[] = [];
-  while(quiz.length != 3) {
-    const questionIndex = Math.floor(Math.random() * questions.length);
-    if (!indicies.includes(questionIndex)) {
-      indicies.push(questionIndex);
-      quiz.push(questions[questionIndex]);
-    }
-  }
-
-  return quiz;
+function randomQuiz(questions: QuizQuestion[], length: number) {
+  return [...questions].sort(() => Math.random() - 0.5).slice(0, length)
 }
 
-// TODO
-function checkDanger() {
-  return 10;
-}
-
-// TODO -> listOfCategories: Category[]
-function highestRiskCat() {
-  return 0;
+function getActiveTabScan(): Promise<PageScan> {
+  return new Promise((resolve, reject) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+      if (!tab?.id) return reject(new Error('No active tab was found.'))
+      chrome.tabs.sendMessage(tab.id, { type: 'ANALYZE_PAGE' }, (response: PageScan | undefined) => {
+        if (chrome.runtime.lastError) {
+          const chromeMessage = chrome.runtime.lastError.message ?? 'Unknown Chrome messaging error.'
+          console.warn('MILE-oh could not reach the page scanner:', chromeMessage)
+          if (chromeMessage.includes('Receiving end does not exist')) return reject(new Error('Reload MILE-oh in chrome://extensions, then refresh this webpage before scanning.'))
+          if (chromeMessage.includes('Cannot access contents of url')) return reject(new Error('Chrome does not allow extensions to scan this type of page. Try a regular website instead.'))
+          return reject(new Error(`Chrome could not connect MILE-oh to this page: ${chromeMessage}`))
+        }
+        if (!response) return reject(new Error('MILE-oh did not receive a scan result.'))
+        resolve(response)
+      })
+    })
+  })
 }
 
 function App() {
-  const [screen, setScreen] = useState<"home" | "scan" | "quiz_q" | "quiz_a" | "score" | "quiz_menu">("home");
-  const [currQuestion, setQuestion] = useState<Question>(
-    {
-    question: "PLACEHOLDER",
-    choices: [ ["a1", "empty desc"], ["a2", "empty desc"], ["a3", "empty desc"] ],
-    answer: 2
-    }
-  )
-  const [userAnswer, setAnswer] = useState(-1);
-  const [totalScore, setScore] = useState(0);
-  const [currQuiz, setQuizQuestions] = useState<Question[]>([]);
-  const [nextQuestionIndex, setNextIndex] = useState(0);
-  const [currCatIndex, setCatIndex] = useState(-1);
+  const [screen, setScreen] = useState<Screen>('home')
+  const [scan, setScan] = useState<PageScan | null>(null)
+  const [isScanning, setIsScanning] = useState(false)
+  const [scanError, setScanError] = useState<string | null>(null)
+  const [categories, setCategories] = useState<QuizCategory[]>([])
+  const [quiz, setQuiz] = useState<QuizQuestion[]>([])
+  const [quizCategory, setQuizCategory] = useState<QuizCategory | null>(null)
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
+  const [userAnswer, setUserAnswer] = useState(-1)
+  const [quizResult, setQuizResult] = useState<QuizAnswerResult | null>(null)
+  const [totalScore, setTotalScore] = useState(0)
+  const [quizLoading, setQuizLoading] = useState(false)
+  const [quizError, setQuizError] = useState<string | null>(null)
+  const [submittingAnswer, setSubmittingAnswer] = useState(false)
+  const [quizLength, setQuizLength] = useState(3)
 
-  // init the vars for the curr question and clear the prev answer
-  function initQuestion(question: Question) {
-    setQuestion(question);
-    setAnswer(-1);
-    setNextIndex(prev => prev + 1);
-    setScreen("quiz_q");
+  const recommendedSlug = () => {
+    const strongest = scan?.findings.reduce((best, finding) => finding.riskPoints > best.riskPoints ? finding : best)
+    return strongest?.lessonSlug ?? 'evaluate-sources'
   }
 
-  // creates a new quiz with 3 random questions chosen from the category given
-  function startQuiz(category: number) {
-    setScore(0);
-    setCatIndex(category);
-    const quiz = generateRandQuestions(listOfCats[category].questions); 
-    setQuizQuestions(quiz); 
-    setNextIndex(0);
-    initQuestion(quiz[0]);
+  async function initScanScreen() {
+    setScreen('scan'); setIsScanning(true); setScanError(null)
+    try { const result = await getActiveTabScan(); setScan(result); void recordScan(result).catch((error: unknown) => console.warn('Could not save scan:', error)) }
+    catch (error) { setScan(null); setScanError(error instanceof Error ? error.message : 'Please try again.') }
+    finally { setIsScanning(false) }
   }
 
-  function initScanScreen() {
-    const highest = highestRiskCat();
-    setCatIndex(highest);
-    setScreen("scan");
+  async function openQuizMenu() {
+    setScreen('quiz_menu')
+    if (categories.length) return
+    setQuizLoading(true); setQuizError(null)
+    try { setCategories(await getQuizCategories()) }
+    catch (error) { setQuizError(error instanceof Error ? error.message : 'Please start the API server and try again.') }
+    finally { setQuizLoading(false) }
   }
 
-  if (screen === "home") {
-    return <HomeScreen initScan={initScanScreen}/>;
+  async function openExpandedView() {
+    const currentWindow = await chrome.windows.getCurrent()
+    if (currentWindow.id !== undefined) await chrome.sidePanel.open({ windowId: currentWindow.id })
   }
 
-  if (screen === "scan") {
-    return (
-      <ScanScreen 
-        assessRisk={() => checkDanger()} 
-        takeQuiz={() => startQuiz(currCatIndex)} 
-        quizMenu={() => setScreen("quiz_menu")}
-      />
-    );
+  async function startQuiz(slug: string, length = 3) {
+    setScreen('quiz_menu'); setQuizLoading(true); setQuizError(null)
+    try {
+      let availableCategories = categories
+      if (!availableCategories.length) {
+        availableCategories = await getQuizCategories()
+        setCategories(availableCategories)
+      }
+      const questions = await getQuizQuestions(slug)
+      if (questions.length < length) throw new Error(`This lesson needs at least ${length} questions before it can start.`)
+      const category = availableCategories.find((item) => item.slug === slug)
+      if (!category) throw new Error('Quiz category could not be found.')
+      setQuizCategory(category); setQuizLength(length); setQuiz(randomQuiz(questions, length)); setCurrentQuestionIndex(0); setUserAnswer(-1); setQuizResult(null); setTotalScore(0); setScreen('quiz_q')
+    } catch (error) { setQuizError(error instanceof Error ? error.message : 'Could not start this lesson.') }
+    finally { setQuizLoading(false) }
   }
 
-  if (screen === "quiz_q") {
-    return (
-      <QuizQScreen 
-        backToScan={() => initScanScreen()} 
-        submitAnswer={() => {
-            if (userAnswer != -1) {
-              setScreen("quiz_a")
-            }
-          }
-        }
-        curr_question={currQuestion}
-        userAnswer={userAnswer}
-        setAnswer={setAnswer}
-        questionIndex={nextQuestionIndex}
-        category={listOfCats[currCatIndex].name}
-      />
-    );
+  async function submitAnswer() {
+    const question = quiz[currentQuestionIndex]
+    if (!question || userAnswer === -1) return
+    setSubmittingAnswer(true)
+    try { setQuizResult(await recordQuizAttempt({ questionId: question.id, selectedAnswer: userAnswer })); setScreen('quiz_a') }
+    catch (error) { setQuizError(error instanceof Error ? error.message : 'Your answer could not be checked.'); setScreen('quiz_menu') }
+    finally { setSubmittingAnswer(false) }
   }
 
-  if (screen === "quiz_a") {
-    return (
-      <QuizAScreen
-        retryQuestion={() => setScreen("quiz_q")}
-        next={() => {
-          // Record the completed attempt without blocking the learner's next screen if the API is offline.
-          void recordQuizAttempt({
-            category: listOfCats[currCatIndex].name,
-            questionText: currQuestion.question,
-            selectedAnswer: userAnswer,
-            correctAnswer: currQuestion.answer,
-            wasCorrect: userAnswer === currQuestion.answer,
-          }).catch((error: unknown) => console.warn('Could not save quiz attempt:', error))
-          if (nextQuestionIndex >= currQuiz.length) {
-            setScreen("score");
-          } else {
-            initQuestion(currQuiz[nextQuestionIndex]);
-          }
-        }}
-        userAnswer={userAnswer}
-        curr_question={currQuestion}
-        addToScore={() => setScore(prev => prev + 1)}
-      />
-    );
+  function nextQuestion() {
+    if (quizResult?.wasCorrect) setTotalScore((score) => score + 1)
+    if (currentQuestionIndex >= quiz.length - 1) { setScreen('score'); return }
+    setCurrentQuestionIndex((index) => index + 1); setUserAnswer(-1); setQuizResult(null); setScreen('quiz_q')
   }
 
-  if (screen === "score") {
-    return (
-      <ScoreScreen 
-        retryQuiz={() => startQuiz(currCatIndex)}
-        backToScan={() => initScanScreen()} 
-        totalCorrect={totalScore}
-        category={listOfCats[currCatIndex].name}
-      />
-    );
-  }
+  if (screen === 'home') return <HomeScreen initScan={() => void initScanScreen()} />
+  if (screen === 'scan') return <ScanScreen scan={scan} isScanning={isScanning} error={scanError} scanAgain={() => void initScanScreen()} takeQuiz={(length) => void startQuiz(recommendedSlug(), length)} quizMenu={() => void openQuizMenu()} openExpanded={() => void openExpandedView()} />
+  if (screen === 'quiz_menu') return <QuizMenuScreen backToScan={() => void initScanScreen()} categories={categories} recommendedSlug={recommendedSlug()} loading={quizLoading} error={quizError} selectCategory={(slug) => void startQuiz(slug)} />
 
-  if (screen === "quiz_menu") {
-    return (
-      <QuizMenuScreen 
-        backToScan={() => initScanScreen()}
-        quiz0={() => startQuiz(0)}
-        quiz1={() => startQuiz(1)}
-      />
-    )
-  }
-
-  // if something doesn't load correctly
-  return <div>Unknown screen</div>;
+  const question = quiz[currentQuestionIndex]
+  if (screen === 'quiz_q' && question && quizCategory) return <QuizQScreen backToScan={() => void initScanScreen()} submitAnswer={() => void submitAnswer()} question={question} userAnswer={userAnswer} setAnswer={setUserAnswer} questionIndex={currentQuestionIndex} totalQuestions={quiz.length} category={quizCategory.title} submitting={submittingAnswer} />
+  if (screen === 'quiz_a' && question && quizResult) return <QuizAScreen retryQuestion={() => { setUserAnswer(-1); setQuizResult(null); setScreen('quiz_q') }} next={nextQuestion} userAnswer={userAnswer} question={question} result={quizResult} />
+  if (screen === 'score' && quizCategory) return <ScoreScreen retryQuiz={() => void startQuiz(quizCategory.slug, quizLength)} backToScan={() => void initScanScreen()} totalCorrect={totalScore} totalQuestions={quiz.length} category={quizCategory.title} />
+  return <div className="screen error-card">MILE-oh could not load this screen.</div>
 }
 
 export default App

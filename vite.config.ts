@@ -10,6 +10,13 @@ export default defineConfig({
         manifest_version: 3,
         name: "MILE-oh",
         version: "1.0.0",
+        description: "MILE-oh is a friendly media and information literacy companion that helps you spot potential risks, check sources, and practice safer choices online.",
+        icons: {
+          "16": "mile-oh-icon-16.png",
+          "32": "mile-oh-icon-32.png",
+          "48": "mile-oh-icon-48.png",
+          "128": "mile-oh-icon-128.png",
+        },
         web_accessible_resources: [
           {
             resources: ["MILE-oh_lightmode.jpg", "MILE-oh_darkmode.jpg"],
@@ -20,6 +27,9 @@ export default defineConfig({
         action: {
           default_popup: "index.html",
         },
+        side_panel: {
+          default_path: "index.html",
+        },
 
         content_scripts: [
           {
@@ -28,7 +38,7 @@ export default defineConfig({
           },
         ],
 
-        permissions: ["activeTab", "storage"],
+        permissions: ["activeTab", "storage", "sidePanel"],
         // Local development. Replace this with your HTTPS API origin before publishing.
         host_permissions: ["http://localhost:3000/*"],
       }

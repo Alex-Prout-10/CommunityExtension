@@ -1,12 +1,11 @@
 const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
 const sessionStorageKey = 'safeScanSessionId'
+import type { PageScan } from './pageScan'
+import type { QuizAnswerResult, QuizCategory, QuizQuestion } from './quiz'
 
 type QuizAttempt = {
-  category: string
-  questionText: string
+  questionId: string
   selectedAnswer: number
-  correctAnswer: number
-  wasCorrect: boolean
 }
 
 function extensionStorageGet(key: string): Promise<Record<string, unknown>> {
@@ -39,8 +38,33 @@ async function getSessionId() {
 
 export async function recordQuizAttempt(attempt: QuizAttempt) {
   const sessionId = await getSessionId()
-  await request('/api/quiz-attempts', {
+  const response = await request('/api/quiz-attempts', {
     method: 'POST',
     body: JSON.stringify({ sessionId, ...attempt }),
   })
+  return response.json() as Promise<QuizAnswerResult>
+}
+
+export async function recordScan(scan: PageScan) {
+  const sessionId = await getSessionId()
+  await request('/api/scans', {
+    method: 'POST',
+    body: JSON.stringify({
+      sessionId,
+      pageOrigin: scan.pageOrigin,
+      riskScore: scan.riskScore,
+      pageCategory: scan.category.kind,
+      findings: scan.findings,
+    }),
+  })
+}
+
+export async function getQuizCategories() {
+  const response = await request('/api/categories')
+  return response.json() as Promise<QuizCategory[]>
+}
+
+export async function getQuizQuestions(slug: string) {
+  const response = await request(`/api/categories/${encodeURIComponent(slug)}/questions`)
+  return response.json() as Promise<QuizQuestion[]>
 }

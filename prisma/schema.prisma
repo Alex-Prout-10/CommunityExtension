@@ -73,6 +73,7 @@ model Scan {
   sessionId String          @db.Uuid
   pageOrigin String         @db.VarChar(2048)
   riskScore Int
+  pageCategory String?     @db.VarChar(50)
   createdAt DateTime        @default(now())
   session   Session         @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   findings  SafetyFinding[]
@@ -94,7 +95,12 @@ model SafetyFinding {
 
 enum FindingType {
   SUSPICIOUS_LINK
+  EXTERNAL_LINK_SIGNAL
   AI_MEDIA_SIGNAL
   MISINFORMATION_SIGNAL
+  AD_PERSUASION_SIGNAL
+  PRIVACY_CONCERN
+  SOCIAL_MEDIA_CONCERN
+  SOURCE_CONTEXT_SIGNAL
   OTHER
 }
