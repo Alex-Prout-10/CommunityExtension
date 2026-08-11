@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import './App.css'
 import HomeScreen from './screens/Home'
 import ScanScreen from './screens/Scan'
@@ -73,10 +73,23 @@ function App() {
     finally { setQuizLoading(false) }
   }
 
-  async function openExpandedView() {
+  async function openExpandedView(scanToRestore: PageScan) {
+    // The popup and side panel are separate extension pages. Store the current result briefly
+    // so the side panel can continue on this scan instead of returning to the home screen.
+    await chrome.storage.local.set({ mileOhPendingSidePanelScan: scanToRestore })
     const currentWindow = await chrome.windows.getCurrent()
     if (currentWindow.id !== undefined) await chrome.sidePanel.open({ windowId: currentWindow.id })
   }
+
+  useEffect(() => {
+    void chrome.storage.local.get('mileOhPendingSidePanelScan').then(async (stored) => {
+      const pendingScan = stored.mileOhPendingSidePanelScan
+      if (!pendingScan || typeof pendingScan !== 'object') return
+      setScan(pendingScan as PageScan)
+      setScreen('scan')
+      await chrome.storage.local.remove('mileOhPendingSidePanelScan')
+    })
+  }, [])
 
   async function startQuiz(slug: string, length = 3) {
     setScreen('quiz_menu'); setQuizLoading(true); setQuizError(null)
@@ -111,7 +124,7 @@ function App() {
   }
 
   if (screen === 'home') return <HomeScreen initScan={() => void initScanScreen()} />
-  if (screen === 'scan') return <ScanScreen scan={scan} isScanning={isScanning} error={scanError} scanAgain={() => void initScanScreen()} takeQuiz={(length) => void startQuiz(recommendedSlug(), length)} quizMenu={() => void openQuizMenu()} openExpanded={() => void openExpandedView()} />
+  if (screen === 'scan') return <ScanScreen scan={scan} isScanning={isScanning} error={scanError} scanAgain={() => void initScanScreen()} takeQuiz={(length) => void startQuiz(recommendedSlug(), length)} quizMenu={() => void openQuizMenu()} openExpanded={(scanToRestore) => void openExpandedView(scanToRestore)} />
   if (screen === 'quiz_menu') return <QuizMenuScreen backToScan={() => void initScanScreen()} categories={categories} recommendedSlug={recommendedSlug()} loading={quizLoading} error={quizError} selectCategory={(slug) => void startQuiz(slug)} />
 
   const question = quiz[currentQuestionIndex]

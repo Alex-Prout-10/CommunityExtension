@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { PageScan } from '../lib/pageScan'
 
-type ScanProps = { scan: PageScan | null; isScanning: boolean; error: string | null; scanAgain: () => void; takeQuiz: (length: number) => void; quizMenu: () => void; openExpanded: () => void }
+type ScanProps = { scan: PageScan | null; isScanning: boolean; error: string | null; scanAgain: () => void; takeQuiz: (length: number) => void; quizMenu: () => void; openExpanded: (scan: PageScan) => void }
 
 const lessons: Record<string, { title: string; nextStep: string }> = {
   'evaluate-sources': { title: 'Check the Source', nextStep: 'Look for author, date, evidence, and independent coverage.' },
@@ -13,7 +13,12 @@ const lessons: Record<string, { title: string; nextStep: string }> = {
   'social-media-safety': { title: 'Social Media Safety', nextStep: 'Check the audience and protect personal details.' },
 }
 
-function riskLabel(score: number) { return score === 0 ? { label: 'No urgent signals found', tone: 'calm' } : score < 15 ? { label: 'Quick verification suggested', tone: 'caution' } : score < 40 ? { label: 'Use caution before acting', tone: 'caution' } : { label: 'Pause and verify', tone: 'warning' } }
+function riskLabel(score: number) {
+  if (score <= 25) return { label: score === 0 ? 'Little to no risk detected' : 'Little to low risk — stay aware', tone: 'calm' }
+  if (score <= 50) return { label: 'Medium risk — use caution', tone: 'caution' }
+  if (score <= 75) return { label: 'High risk — pause and verify', tone: 'warning' }
+  return { label: 'Extreme risk — stop and verify', tone: 'danger' }
+}
 function findingLabel(type: PageScan['findings'][number]['type']) {
   const labels: Partial<Record<PageScan['findings'][number]['type'], string>> = { EXTERNAL_LINK_SIGNAL: 'External links', PRIVACY_CONCERN: 'Privacy', SOCIAL_MEDIA_CONCERN: 'Social safety', AD_PERSUASION_SIGNAL: 'Ads & persuasion', SOURCE_CONTEXT_SIGNAL: 'Source context', AI_MEDIA_SIGNAL: 'AI media' }
   return labels[type] ?? type.replaceAll('_', ' ').toLowerCase()
@@ -45,8 +50,9 @@ export default function ScanScreen({ scan, isScanning, error, scanAgain, takeQui
     {error && <div className="error-card"><strong>Couldn’t scan this page.</strong><span>{error}</span><button className="secondary-button" onClick={scanAgain}>Try again</button></div>}
     {scan && !isScanning && <>
       <section className="mascot-guide"><img src="/MILE-oh_lightmode.jpg" alt="MILE-oh flamingo" /><div><p className="eyebrow">MILE-oh says</p><strong>{scan.category.label}</strong><p>{scan.category.reason}</p></div></section>
-      <section className={`score-card ${risk.tone}`}><div className="score-ring"><strong>{scan.riskScore}</strong><span>/ 100</span></div><div><p className="score-label">{risk.label}</p><p className="muted truncate score-short">MILE score · {scan.title}</p><p className="muted score-expanded">{expandedRiskMessage(scan.category)}</p></div></section>
-      <div className="top-actions"><div className="quiz-quick-start"><button className="primary-button" onClick={() => takeQuiz(questionCount)}><span className="quiz-button-short">Take quiz</span><span className="quiz-button-full">Take quiz: {recommended.title}</span></button><label className="question-length"><span>{questionCount}</span><input aria-label="Number of quiz questions" type="range" min="1" max="10" value={questionCount} onChange={(event) => setQuestionCount(Number(event.target.value))} /></label></div><button className="text-button small-text-button" onClick={openExpanded}>Open side view</button></div>
+      <section className={`score-card ${risk.tone}`}><div className="score-ring"><strong>{scan.riskScore}</strong><span>/ 100</span></div><div><p className="score-label">{risk.label}</p><p className="muted truncate score-short">MILE-oh risk score · {scan.title}</p><p className="muted score-expanded">MILE-oh risk score: {expandedRiskMessage(scan.category)}</p></div></section>
+      {risk.tone === 'warning' || risk.tone === 'danger' ? <section className={`risk-alert ${risk.tone}`} role="alert"><strong>{risk.tone === 'danger' ? 'Stop before you click, pay, or share information.' : 'Pause before you act.'}</strong><span>Open the findings below and verify the strongest signals first.</span></section> : null}
+      <div className="top-actions"><div className="quiz-quick-start"><button className="primary-button" onClick={() => takeQuiz(questionCount)}><span className="quiz-button-short">Take quiz</span><span className="quiz-button-full">Take quiz: {recommended.title}</span></button><label className="question-length"><span>{questionCount}</span><input aria-label="Number of quiz questions" type="range" min="1" max="10" value={questionCount} onChange={(event) => setQuestionCount(Number(event.target.value))} /></label></div><button className="text-button small-text-button" onClick={() => openExpanded(scan)}>Open side view</button></div>
       <div className="stats-row"><span>{scan.linkCount} links checked</span><span>{scan.imageCount} images reviewed</span></div>
       <section className="findings-card compact-findings"><div className="section-heading"><h3>What MILE-oh noticed</h3>{scan.findings.length > 0 && <button className="text-button small-text-button" onClick={() => setDetailsOpen(!detailsOpen)}>{detailsOpen ? 'Hide details' : 'See details'}</button>}</div>{scan.findings.length === 0 ? <p className="muted">Nothing urgent stood out. Keep using your careful-check habits.</p> : <div className="finding-chips">{groups.map(([label, count]) => <span key={label}>{label}{count > 1 ? ` · ${count}` : ''}</span>)}</div>}{detailsOpen && <ul className="finding-list">{scan.findings.map((finding) => <li key={`${finding.type}-${finding.detail}`}><span className="finding-dot" /><div><span className="finding-type">{findingLabel(finding.type)}</span><p>{finding.detail}</p></div></li>)}</ul>}</section>
       <section className="source-card"><div className="section-heading"><div><p className="eyebrow">SOURCE & CONTEXT</p><strong>Source details</strong></div><button className="text-button small-text-button" onClick={() => setSourceOpen(!sourceOpen)}>{sourceOpen ? 'Hide details' : 'See details'}</button></div>{sourceOpen && <><div className="context-grid"><p><span>Provider</span>{scan.sourceContext.provider}</p><p><span>Author</span>{scan.sourceContext.author ?? 'Not detected'}</p><p><span>Published</span>{formatDate(scan.sourceContext.publishedDate)}</p><p><span>External links</span>{scan.sourceContext.externalLinkCount}</p></div>{scan.sourceContext.aboutUrl && <a className="about-link" href={scan.sourceContext.aboutUrl} target="_blank" rel="noreferrer">Open About / Contact page ↗</a>}<p className="source-note">Missing details are a cue to investigate, not proof a source is unreliable.</p></>}</section>

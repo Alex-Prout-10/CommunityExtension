@@ -5,6 +5,9 @@ type FlaggedElement = HTMLElement
 const suspiciousPhrases = ['click here', 'gift card', 'password', 'urgent', 'reset your password', 'verify your account']
 const urlShorteners = new Set(['bit.ly', 'tinyurl.com', 't.co', 'is.gd', 'ow.ly', 'buff.ly'])
 const mediaLabels = /(ai[ -]?generated|synthetic|deepfake|digitally created)/i
+const sensationalHeadlineWords = /\b(shocking|secret|exposed|they don['’]t want you to know|you won['’]t believe|must see|urgent warning|miracle|guaranteed)\b/i
+const highStakesClaimWords = /\b(miracle cure|guaranteed profit|double your money|send crypto|investment secret|medical breakthrough)\b/i
+const riskyDownloadExtensions = /\.(?:exe|msi|dmg|apk|scr|bat|cmd)(?:$|[?#])/i
 
 function addFinding(findings: ScanFinding[], type: FindingType, severity: number, riskPoints: number, lessonSlug: string, detail: string) {
   const existing = findings.find((finding) => finding.type === type && finding.detail === detail)
@@ -28,8 +31,10 @@ function ensureInlineNoticeStyle() {
   const style = document.createElement('style')
   style.dataset.mileOhInlineNoticeStyle = ''
   style.textContent = `
-    [data-mile-oh-inline-notice] { display:block; max-width:340px; margin:6px 0; padding:7px 9px; border-left:3px solid #dc385d; border-radius:6px; background:#fff4f6; color:#5c2335; font:600 12px/1.35 system-ui,sans-serif; text-align:left; }
+    [data-mile-oh-inline-notice] { display:flex; inline-size:100%; max-inline-size:300px; overflow:hidden; white-space:normal !important; align-items:flex-start; gap:7px; margin:6px 0; padding:7px 9px; border-left:3px solid #dc385d; border-radius:6px; background:#fff4f6; color:#5c2335; font:600 12px/1.35 system-ui,sans-serif; text-align:left; }
     [data-mile-oh-inline-notice].mile-oh-caution { border-left-color:#e68a22; background:#fff8ed; color:#624314; }
+    [data-mile-oh-inline-notice] img { width:30px; height:30px; flex:none; object-fit:contain; mix-blend-mode:multiply; }
+    [data-mile-oh-inline-notice] span { display:block; flex:1; min-width:0; padding-top:1px; white-space:normal !important; overflow-wrap:anywhere; word-break:normal; }
   `
   document.documentElement.append(style)
 }
@@ -40,7 +45,12 @@ function addInlineNotice(element: FlaggedElement, severity: number, reason: stri
   const notice = document.createElement('span')
   notice.dataset.mileOhInlineNotice = reason
   notice.className = severity >= 4 ? '' : 'mile-oh-caution'
-  notice.textContent = `MILE-oh: ${reason}`
+  const mascot = document.createElement('img')
+  mascot.src = chrome.runtime.getURL('MILE-oh_lightmode.jpg')
+  mascot.alt = 'Oh the flamingo'
+  const message = document.createElement('span')
+  message.textContent = `Oh says: ${reason}`
+  notice.append(mascot, message)
   element.insertAdjacentElement('afterend', notice)
 }
 
@@ -128,6 +138,10 @@ function analyzeLinks(findings: ScanFinding[]) {
       shortenedLinkCount += 1
       flagElement(link, 2, 'This shortened link hides its final destination. Check it before opening.')
     }
+    if (riskyDownloadExtensions.test(destination.pathname)) {
+      flagElement(link, 3, 'This link downloads a program or installer. Only download software from a source you can verify.')
+      addFinding(findings, 'SUSPICIOUS_LINK', 3, 15, 'suspicious-links', 'This page links to a downloadable program or installer. Verify the publisher before opening it.')
+    }
     // Internationalized domains are common and legitimate in many languages. Do not flag them alone.
 
     const displayedUrl = visibleUrlInText(text)
@@ -138,7 +152,7 @@ function analyzeLinks(findings: ScanFinding[]) {
   }
 
   // Low-level cues should never make a reputable information site look high-risk on their own.
-  if (suspiciousTextCount) addFinding(findings, 'SUSPICIOUS_LINK', 2, 8, 'suspicious-links', `${suspiciousTextCount} link${suspiciousTextCount === 1 ? '' : 's'} use urgency or credential-related language.`)
+  if (suspiciousTextCount) addFinding(findings, 'SUSPICIOUS_LINK', 2, Math.min(20, 8 + suspiciousTextCount * 2), 'suspicious-links', `${suspiciousTextCount} link${suspiciousTextCount === 1 ? '' : 's'} use urgency or credential-related language.`)
   if (shortenedLinkCount) addFinding(findings, 'SUSPICIOUS_LINK', 2, 10, 'suspicious-links', `${shortenedLinkCount} shortened link${shortenedLinkCount === 1 ? '' : 's'} hide the final destination.`)
   if (disguisedLinkCount) addFinding(findings, 'SUSPICIOUS_LINK', 4, 45, 'suspicious-links', `${disguisedLinkCount} link${disguisedLinkCount === 1 ? '' : 's'} show a web address that differs from the actual destination.`)
   if (externalLinkCount) {
@@ -171,7 +185,9 @@ const sensitivePostPatterns = [
   { pattern: /\b(?:\d[ -]*?){13,19}\b/, name: 'a card number' },
   { pattern: /\b[\w.+-]+@[\w-]+\.[\w.-]+\b/, name: 'an email address' },
   { pattern: /\b(?:\+?\d[ .-]?){7,15}\b/, name: 'a phone number' },
+  { pattern: /\b(password|passcode|one[- ]time code|verification code|security code)\b/i, name: 'account security information' },
 ]
+const socialShareRequestPattern = /\b(?:send|share|give|tell|post|message)\b.{0,80}\b(?:password|passcode|one[- ]time code|verification code|security code|social security|ssn|card number|bank account)\b/i
 
 function textForSocialCheck(element: Element) {
   return [
@@ -216,6 +232,20 @@ function analyzeSocialContext(findings: ScanFinding[]) {
 
   installPrivacyTypingGuard(composers)
 
+  // This only looks for a risky request phrase in a short, visible user-post-sized element.
+  // It does not send page text or message content to the server.
+  if (isSocialPlatform() || hasConversationRegion) {
+    const riskyPost = Array.from(document.querySelectorAll<HTMLElement>('article, [role="article"], [role="listitem"]'))
+      .find((element) => {
+        const text = (element.innerText ?? '').trim()
+        return text.length > 0 && text.length < 800 && socialShareRequestPattern.test(text)
+      })
+    if (riskyPost) {
+      flagElement(riskyPost, 4, 'This post appears to ask for sensitive account or financial information. Do not share passwords, codes, or personal details with strangers.')
+      addFinding(findings, 'PRIVACY_CONCERN', 4, 28, 'protect-privacy', 'A visible social post appears to ask someone to share sensitive account or financial information.')
+    }
+  }
+
   if (!composers.length) return
   const socialText = `${socialArea.textContent ?? ''} ${textForSocialCheck(composers[0])}`.slice(0, 2_000)
   const nearbyInputs = Array.from(socialArea.querySelectorAll<HTMLInputElement>('input:not([type="password"])'))
@@ -241,6 +271,10 @@ function analyzePersuasion(findings: ScanFinding[]) {
 
 function analyzeShoppingRisks(findings: ScanFinding[]) {
   const urgency = /\b(only \d+ left|sale ends|ending soon|limited time|deal ends|act now|last chance)\b/i
+  // Marketplaces often render a discount as a compact badge such as "-89%", not "89% off".
+  const extremeDiscount = /(?:\b(?:[7-9]\d|100)\s*%\s*off\b|[-−]\s*(?:[5-9]\d|100)\s*%)/i
+  const couponPressure = /\b(coupon|free gift|claim your gift|add to get\s*\$?\d+|limited deal)\b/i
+  const dollarRewardPressure = /(?:\$\s*\d{2,4}\s*(?:amazing\s*)?(?:coupon|off)|add to get\s*\$?\d+)/i
   const urgencyElements = Array.from(document.querySelectorAll<HTMLElement>('span, p, div')).filter((element) => {
     const text = (element.innerText ?? '').trim()
     return text.length > 0 && text.length < 100 && urgency.test(text) && element.offsetParent !== null
@@ -249,8 +283,68 @@ function analyzeShoppingRisks(findings: ScanFinding[]) {
     flagElement(urgencyElements[0], 2, 'This offer uses time or scarcity pressure. Pause, compare the seller and price, and check the return policy before buying.')
     addFinding(findings, 'AD_PERSUASION_SIGNAL', 2, 5, 'understand-ads-persuasion', `${urgencyElements.length} time-sensitive sales cue${urgencyElements.length === 1 ? '' : 's'} detected. Pressure is a reason to pause and compare before buying.`)
   }
-  const offPlatformPayment = pageTextMatches(/\b(pay by (gift card|wire transfer|crypto|bitcoin)|pay outside (the )?platform|contact seller directly)\b/i)
-  if (offPlatformPayment) addFinding(findings, 'PRIVACY_CONCERN', 4, 25, 'suspicious-links', 'This shopping page mentions an off-platform or hard-to-reverse payment method. Verify the seller through the marketplace before paying.')
+  const paymentPattern = /\b(pay by (gift card|wire transfer|crypto|bitcoin)|pay outside (the )?platform|contact seller directly)\b/i
+  const contactPattern = /\b(contact (the )?seller (on|via) (whatsapp|telegram|signal)|message (me|us) on (whatsapp|telegram|signal))\b/i
+  const findCueElement = (pattern: RegExp) => Array.from(document.querySelectorAll<HTMLElement>('span, p, div')).find((element) => {
+    const text = (element.innerText ?? '').trim()
+    return text.length > 0 && text.length < 220 && pattern.test(text) && element.offsetParent !== null
+  })
+  const paymentCue = findCueElement(paymentPattern)
+  const contactCue = findCueElement(contactPattern)
+  if (paymentCue) {
+    flagElement(paymentCue, 4, 'Potential payment vulnerability: keep payment on the marketplace and avoid gift cards, crypto, or wire transfers until the seller is verified.')
+    addFinding(findings, 'PRIVACY_CONCERN', 4, 25, 'suspicious-links', 'This shopping page mentions an off-platform or hard-to-reverse payment method. Verify the seller through the marketplace before paying.')
+  }
+  const shortVisibleTexts = Array.from(document.querySelectorAll<HTMLElement>('span, p, div, button'))
+    .map((element) => ({ element, text: (element.innerText ?? '').trim() }))
+    .filter(({ element, text }) => element.offsetParent !== null && text.length > 0 && text.length < 90)
+  const discountCues = shortVisibleTexts.filter(({ text }) => extremeDiscount.test(text))
+  const uniqueDiscountCues = [...new Map(discountCues.map((cue) => [cue.text, cue])).values()]
+  if (uniqueDiscountCues.length) {
+    // Show the pattern across the page without covering every product card.
+    uniqueDiscountCues.filter((_cue, index) => index % 2 === 0).slice(0, 4).forEach((cue) => {
+      flagElement(cue.element, 2, 'Big discount claim. Compare the normal price, seller, and return policy before buying.')
+    })
+    addFinding(findings, 'AD_PERSUASION_SIGNAL', 2, Math.min(18, 6 + uniqueDiscountCues.length * 2), 'understand-ads-persuasion', `${uniqueDiscountCues.length} extreme discount cue${uniqueDiscountCues.length === 1 ? '' : 's'} detected. Large discounts can create pressure, so compare before buying.`)
+  }
+  const couponCues = shortVisibleTexts.filter(({ text }) => couponPressure.test(text) || dollarRewardPressure.test(text))
+  const uniqueCouponCues = [...new Map(couponCues.map((cue) => [cue.text, cue])).values()]
+  const hasPageLevelRewardPressure = dollarRewardPressure.test((document.body?.innerText ?? '').slice(0, 80_000))
+  if (uniqueCouponCues.length || hasPageLevelRewardPressure) {
+    const rewardCount = Math.max(uniqueCouponCues.length, hasPageLevelRewardPressure ? 1 : 0)
+    if (uniqueCouponCues[0]) flagElement(uniqueCouponCues[0].element, 2, 'Coupon or reward offer. Check the final price and conditions before continuing.')
+    addFinding(findings, 'AD_PERSUASION_SIGNAL', 2, Math.min(14, 7 + rewardCount * 2), 'understand-ads-persuasion', `${rewardCount} coupon, reward, or free-gift cue${rewardCount === 1 ? '' : 's'} detected. Review the final price, conditions, and seller before buying.`)
+  }
+  if (contactCue) {
+    flagElement(contactCue, 3, 'Potential marketplace vulnerability: moving messages off-platform can remove protections. Verify the seller before continuing.')
+    addFinding(findings, 'SUSPICIOUS_LINK', 3, 12, 'suspicious-links', 'This shopping page asks buyers to move contact off the marketplace. Keep payment and messages on the platform until the seller is verified.')
+  }
+}
+
+function analyzeArticleRisks(findings: ScanFinding[], context: ReturnType<typeof collectSourceContext>) {
+  const headline = document.querySelector<HTMLElement>('h1, [role="heading"][aria-level="1"]')
+  const headlineText = headline?.innerText ?? document.title
+  const hasSensationalHeadline = sensationalHeadlineWords.test(headlineText)
+  if (hasSensationalHeadline && !context.author && !context.publishedDate) {
+    flagElement(headline ?? document.body, 3, 'Combination cue: this sensational headline has no detected author or publication date. Check credentials, evidence, and independent reporting before sharing.')
+    addFinding(findings, 'MISINFORMATION_SIGNAL', 2, 4, 'evaluate-sources', 'A prominent headline uses sensational or emotionally urgent wording. Check the claim, author, date, and evidence.')
+    addFinding(findings, 'SOURCE_CONTEXT_SIGNAL', 3, 10, 'evaluate-sources', 'A sensational headline appears without detected author or publication-date context. Verify credentials and look for independent reporting.')
+  } else if (hasSensationalHeadline) {
+    flagElement(headline ?? document.body, 2, 'This headline uses emotionally urgent or sensational wording. Read beyond it and check who published the claim.')
+    addFinding(findings, 'MISINFORMATION_SIGNAL', 2, 4, 'evaluate-sources', 'A prominent headline uses sensational or emotionally urgent wording. Check the claim, author, date, and evidence.')
+  }
+}
+
+function analyzeDiscussionRisks(findings: ScanFinding[]) {
+  const candidate = Array.from(document.querySelectorAll<HTMLElement>('article, [role="article"], [role="listitem"]'))
+    .find((element) => {
+      const text = (element.innerText ?? '').trim()
+      return text.length > 0 && text.length < 900 && highStakesClaimWords.test(text)
+    })
+  if (candidate) {
+    flagElement(candidate, 2, 'This post makes a high-stakes health or money claim. Look for qualified sources and independent evidence before acting.')
+    addFinding(findings, 'MISINFORMATION_SIGNAL', 2, 10, 'evaluate-sources', 'A visible discussion post makes a high-stakes health or money claim. Verify credentials, evidence, and independent sources.')
+  }
 }
 
 function analyzeMedia(findings: ScanFinding[]) {
@@ -330,6 +424,8 @@ function analyzePage(): PageScan {
   const imageCount = analyzeMedia(findings)
   const sourceContext = collectSourceContext()
   analyzeSourceContext(findings, sourceContext)
+  if (category.kind === 'news') analyzeArticleRisks(findings, sourceContext)
+  if (category.kind === 'social' || category.kind === 'forum') analyzeDiscussionRisks(findings)
   const riskScore = Math.min(100, category.baselineRiskPoints + findings.reduce((total, finding) => total + finding.riskPoints, 0))
 
   return {
